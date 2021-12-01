@@ -1,0 +1,136 @@
+--zadanie 1
+CREATE TABLE movies (
+    id         NUMBER(12) PRIMARY KEY,
+    title      VARCHAR2(400) NOT NULL,
+    category   VARCHAR2(50),
+    year CHAR(4),
+    cast VARCHAR2(4000),
+    director VARCHAR2(4000),
+    story VARCHAR2(4000),
+    price NUMBER(5,2),
+    cover BLOB,
+    mime_type VARCHAR2(50))
+
+SELECT * FROM descriptions;
+SELECT * FROM covers;
+ALTER TABLE movies MODIFY year CHAR(12);
+DELETE FROM Movies;
+
+--zadanie 2
+INSERT
+    INTO movies (
+        id,
+        title,
+        category,
+        year,
+        cast,
+        director,
+        story,
+        price,
+        cover,
+        mime_type
+    )
+SELECT  id,
+        title,
+        category,
+        year,
+        cast,
+        director,
+        story,
+        price,
+        image,
+        mime_type
+        FROM (SELECT
+        descriptions.id,
+        descriptions.title,
+        descriptions.category,
+        descriptions.year,
+        descriptions.cast,
+        descriptions.director,
+        descriptions.story,
+        descriptions.price,
+        covers.image,
+        covers.mime_type
+        FROM descriptions
+        LEFT JOIN covers ON descriptions.id = covers.movie_id);
+
+INSERT INTO movies(cover, mime_type) SELECT image, mime_type FROM covers;
+
+--zadanie 3
+SELECT id, title from MOVIES where cover is null;
+
+--zadanie 4
+SELECT id, title, length(cover) AS filesize  from movies where cover is not null;
+
+--zadanie 5
+SELECT id, title, length(cover) AS filesize  from movies;
+--zostanie wstawiona wartość null
+
+--zadanie 6
+SELECT directory_name, directory_path FROM all_directories;
+
+--zadanie 7
+UPDATE movies
+SET cover = EMPTY_BLOB(), mime_type = 'image/jpeg'
+WHERE id = 66;
+
+--zadanie 8
+SELECT id, title, length(cover)
+AS filesize
+FROM movies
+WHERE id = 65 OR id = 66;
+
+--zadanie 9
+DECLARE
+    lobd blob;
+    fils BFILE := BFILENAME('ZSBD_DIR', 'escape.jpg');
+BEGIN
+    select cover into lobd
+    from movies
+    where id = 66
+    for update;
+    DBMS_LOB.FILEOPEN(fils, DBMS_LOB.file_readonly);
+    DBMS_LOB.LOADFROMFILE(lobd, fils, DBMS_LOB.getlength(fils));
+    DBMS_LOB.FILECLOSE(fils);
+    COMMIT;
+END;
+
+--zadanie 10
+CREATE TABLE temp_covers (
+movie_id NUMBER(12),
+image BFILE,
+mime_type VARCHAR(50));
+
+--zadanie 11
+INSERT INTO temp_covers VALUES(65, BFILENAME('ZSBD_DIR', 'eagles.jpg'), 'image/jpeg');
+
+--zadanie 12
+SELECT movie_id, dbms_lob.getlength(image) AS filesize FROM temp_covers;
+
+--zadanie 13
+DECLARE
+    lobd blob;
+    fils TEMP_COVERS.IMAGE%TYPE;
+    MIME TEMP_COVERS.MIME_TYPE%TYPE;
+BEGIN
+    SELECT IMAGE, MIME_TYPE INTO FILS, MIME
+    FROM TEMP_COVERS
+    WHERE MOVIE_ID = 65;
+    DBMS_LOB.CREATETEMPORARY(LOBD, TRUE);
+    DBMS_LOB.fileOPEN(fils, DBMS_LOB.file_readonly);
+    DBMS_LOB.LOADFROMFILE(lobd, fils, DBMS_LOB.getlength(fils));
+    DBMS_LOB.FILECLOSE(fils);
+    UPDATE MOVIES SET COVER = lobd, MIME_TYPE = MIME 
+    WHERE ID = 65;   
+    dbms_lob.freetemporary(LOBD);
+    COMMIT;
+END;
+
+--zadanie 14
+SELECT id, title, length(cover)
+AS filesize
+FROM movies
+WHERE id = 65 OR id = 66;
+--15
+DROP TABLE movies;
+DROP TABLE temp_covers;
